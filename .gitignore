@@ -6,6 +6,10 @@ ehthumbs.db
 node_modules/
 .idea
 
+logs/
+dist/module/
+dist/static/
+
 # Folder config file
 Desktop.ini
 
