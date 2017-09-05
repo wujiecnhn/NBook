@@ -206,7 +206,7 @@ var getCaption = function() {
       var listLen = list.length;
       var index = 0;
       // 轮询拉取书籍章节
-      comm.sleep(1000*10, function() {
+      comm.sleep(1000*5, function() {
         if(index >= listLen) {
           return false;
         }
@@ -218,6 +218,10 @@ var getCaption = function() {
         unirest.get('http://m.xs.la/'+bookCode+'/all.html')
           .end(function(response) {
             var html = response.body;
+            if(!html) {
+              console.log('--------------------请求异常 记录日志--------------------');
+              return false;
+            }
             var beginIndex = html.indexOf('<div  id="chapterlist"');
             var endIndex = html.indexOf('<script>hf2()</script>');
             // console.log(html);
@@ -260,7 +264,7 @@ var getCaption = function() {
               .send(code_params)
               .end(function(response) {
                 var body = response.body;
-                console.log('code: ' + bookCode + ' -------------- 总条数: ' + codeArr.length + '-------------- 重复条数: ' + body.data.count + ' --------------');
+                console.log('code: ' + bookCode + ' -------------- 总条数: ' + codeArr.length + '-------------- 重复条数: ' + body.data.count + ' --------------' + index);
                 if (body.data.count >= codeArr.length) {
                   // 停止拉取 已经重复
                   console.log('-------------- 停止拉取 已经重复... --------------');

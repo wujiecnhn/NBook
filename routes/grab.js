@@ -23,7 +23,7 @@ router.get('/grab-book', function(req, res, next) {
   var arg1=url.parse(req.url,true).query;
   var cateId = arg1.cateId;
   var page = 1;
-  comm.sleep(60000, function() {
+  comm.sleep(1000*60, function() {
     console.log('抓取第 ' + page + ' 次...');
     page ++;
     grabService.getBook(1);
