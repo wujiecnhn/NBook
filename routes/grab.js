@@ -42,7 +42,13 @@ router.get('/grab-book', function(req, res, next) {
  */
 router.get('/grab-caption', function(req, res, next) {
 
-  grabService.getCaption();
+  var arg1=url.parse(req.url,true).query;
+  var sort = arg1.sort;
+  if(sort == 1) { // 正序更新
+    grabService.getCaption();
+  } else { // 倒序更新
+    grabService.getCaptionDesc();
+  }
 
   /*comm.sleep(60000, function() {
    console.log('抓取第 ' + page + ' 次...');

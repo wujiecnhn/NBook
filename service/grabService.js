@@ -16,6 +16,7 @@ var getBook = function(cateId) {
     .end(function(response) {
       console.log('我进来了' + cateId);
       var html = response.body;
+      if(!html) return false;
       // console.log(html);
       var $html = $(html);
       var $main = $html.children('#main');
@@ -99,33 +100,6 @@ var getBook = function(cateId) {
         book.cateId = cateId;
         bookArr.push(book);
       }
-
-      /* for(var i=0; i<$main.length; i++) {
-       var $dv = $main.eq(i);
-       var $a = $dv.children('a');
-       var img = $a.children('img').attr('data-original');
-       var title = $a.children('.title').text();
-       var href = $a.attr('href');
-       var code = href.substr(1, href.length-2);
-       var authorStr = $a.children('.author').text();
-       var author = authorStr.substr(authorStr.indexOf('：')+1);
-       var reviewStr = $dv.children('.review').text();
-       var review = reviewStr.substr(reviewStr.indexOf('简介：')+3);
-       /!*console.log('第'+(i+1)+'本书籍: ' + title + '       作者: ' + author + '       code: ' + code + '       简介: ' + review);*!/
-
-       // 存储code数组
-       codeArr.push(code);
-
-       // 构建对象集合
-       var book = {};
-       book.code = code;
-       book.name = title.replace(/[\r\n]/g, ""); //去掉回车换行;
-       book.author = author;
-       book.brief = review;
-       book.url = img;
-       book.cateId = 1;
-       bookArr.push(book);
-       }*/
 
       if (!codeArr.length) {
         console.log('-------------- 没有抓取到数据... --------------');
@@ -219,7 +193,7 @@ var getCaption = function() {
           .end(function(response) {
             var html = response.body;
             if(!html) {
-              console.log('--------------------请求异常 记录日志--------------------');
+              saveBookLog(bookCode, 1, 'html为空 请求异常');
               return false;
             }
             var beginIndex = html.indexOf('<div  id="chapterlist"');
@@ -229,7 +203,7 @@ var getCaption = function() {
 
             var $p = $html.children('p');
             if(!$p || !$p.length || $p.length < 2) {
-              console.log('p标签null 没有抓取到数据');
+              saveBookLog(bookCode, 1, 'p标签null 没有抓取到数据');
               return false;
             }
             var pLen = $p.length;
@@ -251,7 +225,7 @@ var getCaption = function() {
             }
 
             if (!codeArr.length) {
-              console.log('-------------- 没有抓取到数据... --------------');
+              saveBookLog(bookCode, 1, '没有抓取到数据...');
               return false;
             }
 
@@ -311,8 +285,174 @@ var getCaption = function() {
     })
 }
 
+/**
+ * 抓取章节标题及Code信息
+ */
+var getCaptionDesc = function() {
+
+  // 查询所有书籍
+  var params = {};
+  unirest.post('http://localhost:8080/grab/listDesc')
+    .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
+    .send(params)
+    .end(function(response) {
+      var body = response.body;
+      if (!body.status) {
+        console.log(body.msg);
+        return false;
+      }
+
+      var list = body.data;
+      var listLen = list.length;
+      var index = 0;
+      // 轮询拉取书籍章节
+      comm.sleep(1000*5, function() {
+        if(index >= listLen) {
+          return false;
+        }
+        var book = list[index];
+        index ++;
+        var bookCode = book.code;
+        var pageArr = [];
+        var codeArr = [];
+        unirest.get('http://m.xs.la/'+bookCode+'/all.html')
+          .end(function(response) {
+            var html = response.body;
+            if(!html) {
+              saveBookLog(bookCode, 1, 'html为空 请求异常');
+              return false;
+            }
+            var beginIndex = html.indexOf('<div  id="chapterlist"');
+            var endIndex = html.indexOf('<script>hf2()</script>');
+            // console.log(html);
+            var $html = $(html.substring(beginIndex, endIndex));
+
+            var $p = $html.children('p');
+            if(!$p || !$p.length || $p.length < 2) {
+              saveBookLog(bookCode, 1, 'p标签null 没有抓取到数据');
+              return false;
+            }
+            var pLen = $p.length;
+            for(var i=1; i<pLen; i++) {
+              var $a = $p.eq(i).children('a');
+              var href = $a.attr('href');
+              if(!href || href.split('/').length < 3) continue;
+              var title = $a.text();
+              var hrefArr = href.split('/');
+              var code = hrefArr[2].substr(0, hrefArr[2].indexOf('.'))
+              // 存储code数组
+              codeArr.push(code);
+
+              var page = {};
+              page.bookCode = bookCode;
+              page.name = title;
+              page.code = code;
+              pageArr.push(page);
+            }
+
+            if (!codeArr.length) {
+              saveBookLog(bookCode, 1, '没有抓取到数据...');
+              return false;
+            }
+
+            /** 检查重复 */
+            var code_params = {};
+            code_params.codes = codeArr.join(',');
+            code_params.bookCode = bookCode;
+            unirest.post('http://localhost:8080/grab/getPageByCodes')
+              .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
+              .send(code_params)
+              .end(function(response) {
+                var body = response.body;
+                console.log('code: ' + bookCode + ' -------------- 总条数: ' + codeArr.length + '-------------- 重复条数: ' + body.data.count + ' --------------' + index);
+                if (body.data.count >= codeArr.length) {
+                  // 停止拉取 已经重复
+                  console.log('-------------- 停止拉取 已经重复... --------------');
+                  // response.render('index', {title: '停止拉取 已经重复...'});
+                  return false;
+                }
+
+                // 重复记录
+                var rCodeArr = JSON.parse(body.data.rCodeArr);
+                var rCodeMap = {};
+                for (var ri = 0; ri < rCodeArr.length; ri++) {
+                  rCodeMap[rCodeArr[ri]] = rCodeArr[ri];
+                }
+                // 获取有效数据
+                var rPageArr = [];
+                for (var bi = 0; bi < pageArr.length; bi++) {
+                  if (!rCodeMap[pageArr[bi]['code']]) {
+                    rPageArr.push(pageArr[bi]);
+                  }
+                }
+
+                if (!rPageArr.length) {
+                  return false;
+                }
+
+                // 保存单本书籍章节集合
+                var params = {};
+                params.pageArr = JSON.stringify(rPageArr);
+                unirest.post('http://localhost:8080/grab/savePage')
+                  .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
+                  .send(params)
+                  .end(function(response) {
+                    var body = response.body;
+                    if (!body.status) {
+                      console.log(body.msg);
+                      return false;
+                    }
+                    page++;
+                    console.log('ok');
+                  })
+              });
+          });
+      })
+    })
+}
+
+/**
+ * 书籍抓取异常的code
+ * @param code
+ * @param type
+ */
+var saveBookLog = function (code, type) {
+
+  var params = {code: code, type: type};
+  unirest.post('http://localhost:8080/grab/saveBookErrLog')
+    .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
+    .send(params)
+    .end(function(response) {
+      var body = response.body;
+      if (!body.status) {
+        console.log(body.msg);
+        return false;
+      }
+    });
+}
+
+/**
+ * 章节抓取异常的code
+ * @param code
+ * @param type
+ */
+var savePagesLog = function (code, type) {
+
+  var params = {code: code, type: type};
+  unirest.post('http://localhost:8080/grab/savePagesErrLog')
+    .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
+    .send(params)
+    .end(function(response) {
+      var body = response.body;
+      if (!body.status) {
+        console.log(body.msg);
+        return false;
+      }
+    });
+}
+
 var collect = {
-  getBook, getCaption
+  getBook, getCaption, getCaptionDesc
 };
 
 module.exports = collect;
