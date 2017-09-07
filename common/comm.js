@@ -5,8 +5,8 @@ var $ = require('jquery')(window);
 var unirest = require('unirest');
 
 var sleep = function(sleepTime, cb) {
-  setInterval(function(){
-    !!cb && cb();
+  var id = setInterval(function(){
+    !!cb && cb(id);
   }, sleepTime);
 }
 

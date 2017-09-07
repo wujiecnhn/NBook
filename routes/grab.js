@@ -64,6 +64,7 @@ router.get('/grab-caption', function(req, res, next) {
  */
 router.get('/grab-details', function(req, res, next) {
 
+  grabService.grabDetails();
   res.render('index', {title: '抓取书籍章节内容'});
 })
 

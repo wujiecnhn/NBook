@@ -180,8 +180,9 @@ var getCaption = function() {
       var listLen = list.length;
       var index = 0;
       // 轮询拉取书籍章节
-      comm.sleep(1000*5, function() {
+      comm.sleep(1000*5, function(id) {
         if(index >= listLen) {
+          window.clearInterval(id);
           return false;
         }
         var book = list[index];
@@ -306,8 +307,9 @@ var getCaptionDesc = function() {
       var listLen = list.length;
       var index = 0;
       // 轮询拉取书籍章节
-      comm.sleep(1000*5, function() {
+      comm.sleep(1000*5, function(id) {
         if(index >= listLen) {
+          window.clearInterval(id);
           return false;
         }
         var book = list[index];
@@ -436,9 +438,9 @@ var saveBookLog = function (code, type) {
  * @param code
  * @param type
  */
-var savePagesLog = function (code, type) {
+var savePagesLog = function (bookCode, code, type) {
 
-  var params = {code: code, type: type};
+  var params = {bookCode: bookCode, code: code, type: type};
   unirest.post('http://localhost:8080/grab/savePagesErrLog')
     .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
     .send(params)
@@ -451,8 +453,101 @@ var savePagesLog = function (code, type) {
     });
 }
 
+/**
+ * 抓取小说详情
+ */
+var grabDetails = function () {
+  // 查询所有书籍
+  var params = {};
+  unirest.post('http://localhost:8080/grab/list')
+    .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
+    .send(params)
+    .end(function(response) {
+      var body = response.body;
+      if (!body.status) {
+        console.log(body.msg);
+        return false;
+      }
+      var list = body.data;
+      if(!list || !list.length){
+        return ;
+      }
+      var list = body.data;
+      var listLen = list.length;
+      // 应该开启多线程
+      loopPagesByCode(list[0].code);
+    });
+}
+
+/**
+ * 根据书记code查询该书本所有内容为空章节
+ * @param bookCode
+ */
+var loopPagesByCode = function (bookCode) {
+  // 查询书籍所有空章节
+  var params = {bookCode: bookCode};
+  unirest.post('http://localhost:8080/grab/getNullPagesByCode')
+    .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
+    .send(params)
+    .end(function(response) {
+      var body = response.body;
+      if (!body.status) {
+        console.log(body.msg);
+        return false;
+      }
+      var list = body.data;
+      if(!list || !list.length){
+        return ;
+      }
+      var listLen = list.length;
+      var index = 0;
+      comm.sleep(1000*5, function(id) { // 5秒请求一次
+        if(index >= listLen) {
+          window.clearInterval(id);
+          return false;
+        }
+        var pages = list[index];
+        index ++;
+        grabContent(pages.bookCode, pages.code);
+      });
+    });
+}
+
+/**
+ * 抓取内容
+ * @param bookCode
+ * @param code
+ */
+var grabContent = function (bookCode, code) {
+
+  unirest.get('http://m.xs.la/'+bookCode+'/'+code+'.html')
+    .end(function(response) {
+      var html = response.body;
+      if (!html) {
+        savePagesLog(bookCode, code, 2, 'html为空 请求异常');
+        return false;
+      }
+
+      var beginIndex = html.indexOf('<div id="chaptercontent"');
+      var endIndex = html.indexOf('<script language="javascript">getset()</script>');
+      var $html = $(html.substring(beginIndex, endIndex));
+      var content = $html.html();
+      var params = {bookCode: bookCode, code: code, content: content};
+      unirest.post('http://localhost:8080/grab/updatePagesContent')
+        .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
+        .send(params)
+        .end(function(response) {
+          var body = response.body;
+          if (!body.status) {
+            savePagesLog(bookCode, code, 2, '更新失败');
+            return false;
+          }
+        });
+      });
+}
+
 var collect = {
-  getBook, getCaption, getCaptionDesc
+  getBook, getCaption, getCaptionDesc, grabDetails
 };
 
 module.exports = collect;
