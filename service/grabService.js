@@ -183,6 +183,7 @@ var getCaption = function() {
       comm.sleep(1000*5, function(id) {
         if(index >= listLen) {
           window.clearInterval(id);
+          console.log('书籍遍历拉取章节结束');
           return false;
         }
         var book = list[index];
@@ -310,6 +311,7 @@ var getCaptionDesc = function() {
       comm.sleep(1000*5, function(id) {
         if(index >= listLen) {
           window.clearInterval(id);
+          console.log('书籍遍历拉取章节结束');
           return false;
         }
         var book = list[index];
@@ -418,9 +420,9 @@ var getCaptionDesc = function() {
  * @param code
  * @param type
  */
-var saveBookLog = function (code, type) {
+var saveBookLog = function (code, type, msg) {
 
-  var params = {code: code, type: type};
+  var params = {code: code, type: type, msg: msg};
   unirest.post('http://localhost:8080/grab/saveBookErrLog')
     .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
     .send(params)
@@ -438,9 +440,9 @@ var saveBookLog = function (code, type) {
  * @param code
  * @param type
  */
-var savePagesLog = function (bookCode, code, type) {
+var savePagesLog = function (bookCode, code, type, msg) {
 
-  var params = {bookCode: bookCode, code: code, type: type};
+  var params = {bookCode: bookCode, code: code, type: type, msg: msg};
   unirest.post('http://localhost:8080/grab/savePagesErrLog')
     .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
     .send(params)
@@ -504,6 +506,7 @@ var loopPagesByCode = function (bookCode) {
       comm.sleep(1000*5, function(id) { // 5秒请求一次
         if(index >= listLen) {
           window.clearInterval(id);
+          console.log(bookCode + ' 拉取结束');
           return false;
         }
         var pages = list[index];
