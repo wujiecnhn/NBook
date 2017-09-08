@@ -507,10 +507,12 @@ var loopPages = function (bookList) {
           var body = response.body;
           if (!body.status) {
             console.log(body.msg);
+            falg = true;
             return false;
           }
           var list = body.data;
           if(!list || !list.length){
+            falg = true;
             return ;
           }
           var listLen = list.length;
