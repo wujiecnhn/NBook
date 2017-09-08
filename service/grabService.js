@@ -477,7 +477,7 @@ var grabDetails = function () {
       var list = body.data;
       var listLen = list.length;
       // 应该开启多线程
-      loopPagesByCode(list[0].code);
+      loopPages(list);
     });
 }
 
@@ -485,35 +485,53 @@ var grabDetails = function () {
  * 根据书记code查询该书本所有内容为空章节
  * @param bookCode
  */
-var loopPagesByCode = function (bookCode) {
-  // 查询书籍所有空章节
-  var params = {bookCode: bookCode};
-  unirest.post('http://localhost:8080/grab/getNullPagesByCode')
-    .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
-    .send(params)
-    .end(function(response) {
-      var body = response.body;
-      if (!body.status) {
-        console.log(body.msg);
-        return false;
-      }
-      var list = body.data;
-      if(!list || !list.length){
-        return ;
-      }
-      var listLen = list.length;
-      var index = 0;
-      comm.sleep(1000*5, function(id) { // 5秒请求一次
-        if(index >= listLen) {
-          window.clearInterval(id);
-          console.log(bookCode + ' 拉取结束');
-          return false;
-        }
-        var pages = list[index];
-        index ++;
-        grabContent(pages.bookCode, pages.code);
-      });
-    });
+var loopPages = function (bookList) {
+
+  var count = 0;
+  var falg = true;
+  comm.sleep(1000*5, function(id) { // 5秒请求一次
+    if(count == bookList.length) {
+      window.clearInterval(id);
+      console.log('所有书籍拉取完成');
+      return ;
+    }
+    if(falg) {
+      falg = false;
+      console.log('-------------书本计数: ' + (count+1));
+      // 查询书籍所有空章节
+      var params = {bookCode: bookList[count]['code']};
+      unirest.post('http://localhost:8080/grab/getNullPagesByCode')
+        .headers({'Accept': 'application/json', 'Content-Type': 'application/json'})
+        .send(params)
+        .end(function(response) {
+          var body = response.body;
+          if (!body.status) {
+            console.log(body.msg);
+            return false;
+          }
+          var list = body.data;
+          if(!list || !list.length){
+            return ;
+          }
+          var listLen = list.length;
+          var index = 0;
+          comm.sleep(1000*5, function(id) { // 5秒请求一次
+            if(index >= listLen) {
+              window.clearInterval(id);
+              falg = true;
+              console.log(bookList[count]['code'] + ' 拉取结束');
+              return false;
+            }
+            var pages = list[index];
+            index ++;
+            grabContent(pages.bookCode, pages.code);
+          });
+        });
+
+    }
+    count ++;
+  });
+
 }
 
 /**
