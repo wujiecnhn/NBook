@@ -146,8 +146,8 @@ var getBook = function(cateId) {
             .send(params)
             .end(function(response) {
               var body = response.body;
-              if (!body.status) {
-                console.log(body.msg);
+              if (!body || !body.status) {
+                console.log(JSON.stringify(body));
                 // response.render('index', {title: body.msg});
                 return false;
               }
@@ -171,8 +171,8 @@ var getCaption = function() {
     .send(params)
     .end(function(response) {
       var body = response.body;
-      if (!body.status) {
-        console.log(body.msg);
+      if (!body || !body.status) {
+        console.log(JSON.stringify(body));
         return false;
       }
 
@@ -274,8 +274,8 @@ var getCaption = function() {
                   .send(params)
                   .end(function(response) {
                     var body = response.body;
-                    if (!body.status) {
-                      console.log(body.msg);
+                    if (!body || !body.status) {
+                      console.log(JSON.stringify(body));
                       return false;
                     }
                     page++;
@@ -299,8 +299,8 @@ var getCaptionDesc = function() {
     .send(params)
     .end(function(response) {
       var body = response.body;
-      if (!body.status) {
-        console.log(body.msg);
+      if (!body || !body.status) {
+        console.log(JSON.stringify(body));
         return false;
       }
 
@@ -402,8 +402,8 @@ var getCaptionDesc = function() {
                   .send(params)
                   .end(function(response) {
                     var body = response.body;
-                    if (!body.status) {
-                      console.log(body.msg);
+                    if (!body || !body.status) {
+                      console.log(JSON.stringify(body));
                       return false;
                     }
                     page++;
@@ -428,8 +428,8 @@ var saveBookLog = function (code, type, msg) {
     .send(params)
     .end(function(response) {
       var body = response.body;
-      if (!body.status) {
-        console.log(body.msg);
+      if (!body || !body.status) {
+        console.log(JSON.stringify(body));
         return false;
       }
     });
@@ -448,8 +448,8 @@ var savePagesLog = function (bookCode, code, type, msg) {
     .send(params)
     .end(function(response) {
       var body = response.body;
-      if (!body.status) {
-        console.log(body.msg);
+      if (!body || !body.status) {
+        console.log(JSON.stringify(body));
         return false;
       }
     });
@@ -466,8 +466,8 @@ var grabDetails = function () {
     .send(params)
     .end(function(response) {
       var body = response.body;
-      if (!body.status) {
-        console.log(body.msg);
+      if (!body || !body.status) {
+        console.log(JSON.stringify(body));
         return false;
       }
       var list = body.data;
@@ -487,9 +487,9 @@ var grabDetails = function () {
  */
 var loopPages = function (bookList) {
 
-  var count = 0;
+  var count = 3598;
   var falg = true;
-  comm.sleep(1000*5, function(id) { // 5秒请求一次
+  comm.sleep(1000*10, function(id) { // 10秒请求一次
     if(count == bookList.length) {
       window.clearInterval(id);
       console.log('所有书籍拉取完成');
@@ -505,8 +505,8 @@ var loopPages = function (bookList) {
         .send(params)
         .end(function(response) {
           var body = response.body;
-          if (!body.status) {
-            console.log(body.msg);
+          if (!body || !body.status) {
+            console.log(JSON.stringify(body));
             falg = true;
             return false;
           }
@@ -517,10 +517,11 @@ var loopPages = function (bookList) {
           }
           var listLen = list.length;
           var index = 0;
-          comm.sleep(1000*5, function(id) { // 5秒请求一次
+          comm.sleep(1000*10, function(id) { // 10秒请求一次
             if(index >= listLen) {
               window.clearInterval(id);
               falg = true;
+              index = 0;
               console.log(bookList[count]['code'] + ' 拉取结束');
               return false;
             }
@@ -561,7 +562,7 @@ var grabContent = function (bookCode, code) {
         .send(params)
         .end(function(response) {
           var body = response.body;
-          if (!body.status) {
+          if (!body || !body.status) {
             savePagesLog(bookCode, code, 2, '更新失败');
             return false;
           }
