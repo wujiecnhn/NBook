@@ -487,7 +487,7 @@ var grabDetails = function () {
  */
 var loopPages = function (bookList) {
 
-  var count = 3598;
+  var count = 0;
   var falg = true;
   comm.sleep(1000*10, function(id) { // 10秒请求一次
     if(count == bookList.length) {
@@ -517,7 +517,7 @@ var loopPages = function (bookList) {
           }
           var listLen = list.length;
           var index = 0;
-          comm.sleep(1000*10, function(id) { // 10秒请求一次
+          comm.sleep(1000*5, function(id) { // 10秒请求一次
             if(index >= listLen) {
               window.clearInterval(id);
               falg = true;
