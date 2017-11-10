@@ -19,7 +19,17 @@ var book = require('./routes/book');
 var grab = require('./routes/grab');
 
 var app = express();
-
+//设置跨域访问
+app.all('*', function(req, res, next) {
+  var origin = req.header('Origin');
+  res.header("Access-Control-Allow-Origin", origin);
+  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,OPTIONS");
+  res.header("X-Powered-By",' 3.2.1');
+  res.header("Content-Type", "application/json;charset=utf-8");
+  res.header("Access-Control-Allow-Credentials", true);
+  next();
+});
 
 // view engine setup
 app.set('views', path.join(__dirname, './dist/module'));

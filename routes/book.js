@@ -14,7 +14,7 @@ var api = require('../common/api.conf.js');
 /**
  * 抓取书籍名字及code信息
  */
-router.get('/index', function(req, res, next) {
+router.post('/index', function(req, res, next) {
 
   var data = {body: {}, status: false};
 
