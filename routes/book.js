@@ -12,7 +12,7 @@ var unirest = require('unirest');
 var api = require('../common/api.conf.js');
 
 /**
- * 抓取书籍名字及code信息
+ * 首页
  */
 router.post('/index', function(req, res, next) {
 
@@ -83,6 +83,124 @@ router.post('/index', function(req, res, next) {
         body.lsjs.push(obj);
       });
       data.body = body;
+      data.status = true;
+      res.send(data);
+    });
+})
+
+/**
+ * 书籍信息,最新章节
+ */
+router.post('/info', function(req, res, next) {
+
+  var data = {body: {}, status: false};
+  var bCode = req.body.bCode;
+  unirest.get('http://m.xs.la'+bCode)
+    .end(function(response) {
+      var html = response.body;
+      if(!html) {
+        data.msg = '请求异常';
+        res.send(data);
+        return false;
+      }
+      var beginIndex = html.indexOf('<body>');
+      var endIndex = html.indexOf('</body>');
+      var $html = $(html.substring(beginIndex, endIndex)); // 全部节点
+      var $detail = $html.find('.synopsisArea_detail'); // 详情
+      var $detail_p = $detail.children('p'); // 详情
+      var $review = $html.find('.review').remove('a'); // 简介
+      var $chapterlist = $html.find('#chapterlist'); //
+
+      var detail = {};
+      detail.bookName = $html.find('.title').html();
+      detail.author = $detail.find('.author').html();
+      detail.type = $detail.find('.sort').html();
+      detail.status = $detail_p.eq(1).html();
+      detail.upTime = $detail_p.eq(2).html();
+      detail.detail = $review.html();
+
+      //
+      var list = [];
+      var $pArr = $chapterlist.children('p');
+      $.each($pArr || [], function(i, v) {
+        var $v = $(v);
+        var obj = {};
+        obj.code = $v.find('a').attr('href');
+        obj.title = $v.text();
+        list.push(obj);
+      });
+      data.body.list = list;
+      data.body.detail = detail;
+      data.status = true;
+      res.send(data);
+    });
+})
+
+/**
+ * 书籍目录
+ */
+router.post('/section', function(req, res, next) {
+
+  var data = {body: {}, status: false};
+  var bCode = req.body.bCode;
+  unirest.get('http://m.xs.la'+bCode+'all.html')
+    .end(function(response) {
+      var html = response.body;
+      if(!html) {
+        data.msg = '请求异常';
+        res.send(data);
+        return false;
+      }
+      var beginIndex = html.indexOf('<div id="chapterlist"');
+      var endIndex = html.indexOf('<script>hf2()</script>');
+      var $html = $(html.substring(beginIndex, endIndex));
+
+      var list = [];
+      // 书籍类别
+      var $pArr = $html.children('p');
+      //
+      $.each($pArr || [], function(i, v) {
+        var $v = $(v);
+        var obj = {};
+        obj.code = $v.find('a').attr('href');
+        obj.title = $v.text();
+        list.push(obj);
+      });
+      data.body.list = list;
+      data.status = true;
+      res.send(data);
+    });
+})
+
+/**
+ * 章节内容
+ */
+router.post('/details', function(req, res, next) {
+
+  var data = {body: {}, status: false};
+  var code = req.body.code;
+  unirest.get('http://m.xs.la'+code)
+    .end(function(response) {
+      var html = response.body;
+      if(!html) {
+        data.msg = '请求异常';
+        res.send(data);
+        return false;
+      }
+      var beginIndex = html.indexOf('<body>');
+      var endIndex = html.indexOf('</body>');
+      var $html = $(html.substring(beginIndex, endIndex)); // 全部节点
+      var pb_prev = $html.find('#pb_prev').attr('href');
+      var pb_next = $html.find('#pb_next').attr('href');
+
+      var beginIndex2 = html.indexOf('<div id="chaptercontent"');
+      var endIndex2 = html.indexOf('<script language="javascript">getset()</script>');
+      var $html2 = $(html.substring(beginIndex2, endIndex2));
+      var content = $html2.html();
+
+      data.body.data = content;
+      data.body.pb_prev = pb_prev;
+      data.body.pb_next = pb_next;
       data.status = true;
       res.send(data);
     });
