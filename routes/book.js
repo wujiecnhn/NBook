@@ -156,7 +156,7 @@ router.post('/section', function(req, res, next) {
       var $html = $(html.substring(beginIndex, endIndex));
 
       var list = [];
-      // 书籍类别
+      // 书籍目录
       var $pArr = $html.children('p');
       //
       $.each($pArr || [], function(i, v) {
@@ -201,6 +201,87 @@ router.post('/details', function(req, res, next) {
       data.body.data = content;
       data.body.pb_prev = pb_prev;
       data.body.pb_next = pb_next;
+      data.status = true;
+      res.send(data);
+    });
+})
+
+/**
+ * 书籍分类
+ */
+router.post('/type', function(req, res, next) {
+
+  var data = {body: {}, status: false};
+  var type = req.body.type;
+  unirest.get('http://m.xs.la/newclass/'+type+'/1.html')
+    .end(function(response) {
+      var html = response.body;
+      if(!html) {
+        data.msg = '请求异常';
+        res.send(data);
+        return false;
+      }
+      var beginIndex = html.indexOf('<body>');
+      var endIndex = html.indexOf('</body>');
+      var $html = $(html.substring(beginIndex, endIndex)); // 全部节点
+      var $mainDiv = $html.find('#main').children('div');
+
+      var list = [];
+      $.each($mainDiv || [], function(i, v) {
+        var $v = $(v);
+        var obj = {};
+        obj.bCode = $v.children('a').attr('href');
+        obj.title = $v.find('.title').html();
+        obj.author = $v.find('.author').html();
+        list.push(obj);
+      });
+
+      data.body.list = list;
+      data.status = true;
+      res.send(data);
+    });
+})
+
+/**
+ * 书籍搜索
+ */
+router.post('/search', function(req, res, next) {
+
+  var data = {body: {}, status: false};
+  var name = req.body.name || '';
+  name = name || '都市言情';
+  unirest.get('http://zhannei.baidu.com/cse/search?q='+encodeURI(name)+'&click=1&s=1393206249994657467')
+    .end(function(response) {
+      var html = response.body;
+      if(!html) {
+        data.msg = '请求异常';
+        res.send(data);
+        return false;
+      }
+      var beginIndex = html.indexOf('<body>');
+      var endIndex = html.indexOf('</body>');
+      var $html = $(html.substring(beginIndex, endIndex)); // 全部节点
+      var $mainDiv = $html.find('.result-list').children('div');
+
+      var list = [];
+      $.each($mainDiv || [], function(i, v) {
+        var $v = $(v);
+        var $result_detail = $v.find('.result-game-item-detail');
+        var $result_info = $v.find('.result-game-item-info-tag');
+        var href = $result_detail.children('h3').children('a').attr('href');
+        var title = $result_detail.children('h3').children('a').attr('title');
+
+        var obj = {};
+        obj.bCode = href.replace('http://www.xs.la', '');
+        obj.title = title;
+        obj.author = $result_info.eq(0).text();
+        obj.type = $result_info.eq(1).text();
+        obj.upTime = $result_info.eq(2).text();
+        obj.upChapter = $result_info.eq(3).text();
+        list.push(obj);
+      });
+
+      data.body.list = list;
       data.status = true;
       res.send(data);
     });
