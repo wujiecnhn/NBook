@@ -192,12 +192,14 @@ router.post('/details', function(req, res, next) {
       var $html = $(html.substring(beginIndex, endIndex)); // 全部节点
       var pb_prev = $html.find('#pb_prev').attr('href');
       var pb_next = $html.find('#pb_next').attr('href');
+      var title = $html.find('.title').html();
 
       var beginIndex2 = html.indexOf('<div id="chaptercontent"');
       var endIndex2 = html.indexOf('<script language="javascript">getset()</script>');
       var $html2 = $(html.substring(beginIndex2, endIndex2));
       var content = $html2.html();
 
+      data.body.title = title;
       data.body.data = content;
       data.body.pb_prev = pb_prev;
       data.body.pb_next = pb_next;
