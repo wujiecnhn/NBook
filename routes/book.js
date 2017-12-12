@@ -26,8 +26,8 @@ router.post('/index', function(req, res, next) {
         res.send(data);
         return false;
       }
-      var beginIndex = html.indexOf('<header class="Index_Header">');
-      var endIndex = html.indexOf('<script>dp()</script>');
+      var beginIndex = html.indexOf('</head>');
+      var endIndex = html.indexOf('</html>');
       var $html = $(html.substring(beginIndex, endIndex));
 
       var body = {};
