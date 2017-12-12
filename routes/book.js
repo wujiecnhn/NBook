@@ -151,8 +151,8 @@ router.post('/section', function(req, res, next) {
         res.send(data);
         return false;
       }
-      var beginIndex = html.indexOf('<div id="chapterlist"');
-      var endIndex = html.indexOf('<script>hf2()</script>');
+      var beginIndex = html.indexOf('</head>');
+      var endIndex = html.indexOf('</html>');
       var $html = $(html.substring(beginIndex, endIndex));
 
       var list = [];
